@@ -3,7 +3,6 @@ const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const person = require('./models/person')
-const { response } = require('express')
 
 const app = express()
 
@@ -35,7 +34,7 @@ app.get('/api/persons/:id', (req, res, next) => {
 })
 
 app.put('/api/persons/:id', (req, res, next) => {
-    person.findByIdAndUpdate(req.params.id, req.body, {new: true})
+    person.findByIdAndUpdate(req.params.id, req.body, {new: true, runValidators: true})
         .then(updatedPerson => res.json(updatedPerson))
         .catch(error => next(error))
 })
@@ -55,12 +54,6 @@ app.delete('/api/persons/:id', (req, res, next) => {
 
 app.post('/api/persons', (req, res, next) => {
     const contact = req.body
-    if(!contact.name || !contact.number) {
-        console.log("Received malformed contact")
-        return res.status(400).json({"error": "Check if name and number exist"})
-    }
-
-    console.log(`Received ${contact.name} ${contact.number}`)
 
     const newEntry = {
         name: contact.name,
@@ -82,7 +75,9 @@ const errorHandler = (error, request, response, next) => {
     console.error(error.message)
 
     if(error.name === 'CastError') {
-        return response.status(400).send({error: "Malformed ID"})
+        response.status(400).send({error: "Malformed ID"})
+    } else if(error.name === 'ValidationError') {
+        response.status(400).send({error: error.message})
     }
 
     next(error)
